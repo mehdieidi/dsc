@@ -5,6 +5,7 @@ Solutions to [fly.io](https://fly.io/dist-sys/) distributed systems challenges.
 ## Index
 
 - echo
+- generate globally unique IDs (GUIDs)
 - broadcast
   - single-node broadcast
   - multi-node broadcast
