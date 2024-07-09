@@ -10,40 +10,49 @@ import (
 	maelstrom "github.com/jepsen-io/maelstrom/demo/go"
 )
 
-type handler struct {
+type srv struct {
 	node   *maelstrom.Node
 	logger *slog.Logger
 }
 
-func (h *handler) msgHandler(msg maelstrom.Message) error {
+func (s *srv) generateHandler(msg maelstrom.Message) error {
 	var body map[string]any
 	err := json.Unmarshal(msg.Body, &body)
 	if err != nil {
-		h.logger.Error(err.Error())
+		s.logger.Error(err.Error())
 		return err
 	}
 
-	body["type"] = "generate_ok"
+	response := map[string]any{
+		"type": "generate_ok",
+		"id":   ulid.Make(),
+	}
 
-	body["id"] = ulid.Make()
-
-	return h.node.Reply(msg, body)
+	return s.node.Reply(msg, response)
 }
 
 func main() {
-	logFile, err := os.Create("./logs.log")
+	logFile, err := os.Create("/home/mehdi/work/dsc/globally-unique-id-generation/logs.log")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer logFile.Close()
+	defer func(logFile *os.File) {
+		err := logFile.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(logFile)
 
-	logger := slog.New(slog.NewJSONHandler(logFile, nil))
+	logger := slog.New(slog.NewTextHandler(logFile, nil))
 
 	n := maelstrom.NewNode()
 
-	handler := handler{n, logger}
+	srv := srv{
+		node:   n,
+		logger: logger,
+	}
 
-	n.Handle("generate", handler.msgHandler)
+	n.Handle("generate", srv.generateHandler)
 
 	err = n.Run()
 	if err != nil {
